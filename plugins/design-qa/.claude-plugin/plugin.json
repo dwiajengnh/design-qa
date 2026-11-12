@@ -1,0 +1,6 @@
+{
+  "name": "design-qa",
+  "version": "1.0.0",
+  "description": "Visual design QA: staging vs Figma, bugs logged to Notion with screenshots.",
+  "author": { "name": "Kesato" }
+}

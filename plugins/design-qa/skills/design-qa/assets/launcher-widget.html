@@ -1,0 +1,34 @@
+<h2 class="sr-only">Design QA launcher form with staging URL, Figma desktop and mobile frame links, a saved Notion database link, and a start button.</h2>
+<style>
+.f{margin:0 0 14px}.f label{display:block;font-size:13px;color:var(--text-secondary);margin:0 0 6px}.f input{width:100%;box-sizing:border-box}.err{font-size:13px;color:var(--text-danger);margin:4px 0 0}
+.saved{display:flex;align-items:center;gap:8px;background:var(--surface-1);border-radius:var(--radius);padding:8px 12px;font-size:13px}
+.saved span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary)}
+</style>
+<div style="background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin:1rem 0">
+<div class="f"><label for="nt"><i class="ti ti-database" aria-hidden="true" style="font-size:15px;vertical-align:-2px;margin-right:4px"></i>Notion database</label>
+<div id="ntSaved" class="saved" style="display:none"><i class="ti ti-lock" aria-hidden="true" style="font-size:15px;color:var(--text-success)"></i><span id="ntText"></span><button id="ntEdit" style="height:28px;font-size:13px">Change</button></div>
+<div id="ntEditBox"><div style="display:flex;gap:8px"><input id="nt" type="url" placeholder="https://www.notion.so/workspace/db-id?v=view-id"><button id="ntSave">Save</button></div></div>
+<p class="err" id="ntErr"></p></div>
+<div class="f"><label for="st"><i class="ti ti-world" aria-hidden="true" style="font-size:15px;vertical-align:-2px;margin-right:4px"></i>Staging page URL</label><input id="st" type="url" placeholder="https://staging.example.com/page/"><p class="err" id="stErr"></p></div>
+<div class="f"><label for="fd"><i class="ti ti-device-desktop" aria-hidden="true" style="font-size:15px;vertical-align:-2px;margin-right:4px"></i>Figma frame link, desktop</label><input id="fd" type="url" placeholder="https://www.figma.com/design/FILE/Name?node-id=1-2"><p class="err" id="fdErr"></p></div>
+<div class="f"><label for="fm"><i class="ti ti-device-mobile" aria-hidden="true" style="font-size:15px;vertical-align:-2px;margin-right:4px"></i>Figma frame link, mobile</label><input id="fm" type="url" placeholder="https://www.figma.com/design/FILE/Name?node-id=3-4"><p class="err" id="fmErr"></p></div>
+<button id="go" style="width:100%;margin-top:4px"><i class="ti ti-player-play" aria-hidden="true" style="font-size:16px;vertical-align:-2px;margin-right:6px"></i>Start QA ↗</button>
+</div>
+<script>
+const DEF='{{NOTION_DEFAULT}}';const K='designqa_notion';const $=id=>document.getElementById(id);
+let nt=DEF;try{nt=localStorage.getItem(K)||DEF}catch(e){}
+function view(){const has=!!nt;$('ntSaved').style.display=has?'flex':'none';$('ntEditBox').style.display=has?'none':'block';$('ntText').textContent=nt}
+view();
+$('ntEdit').onclick=()=>{$('nt').value=nt;$('ntSaved').style.display='none';$('ntEditBox').style.display='block';$('nt').focus()};
+const isNotion=v=>/^https:\/\/([a-z0-9-]+\.)?notion\.(so|com|site)\//i.test(v);
+const isFigma=v=>/^https:\/\/(www\.)?figma\.com\/design\/[^/]+\/.*node-id=\d+-\d+/i.test(v);
+$('ntSave').onclick=()=>{const v=$('nt').value.trim();if(!isNotion(v)){$('ntErr').textContent='Enter a Notion database link.';return}nt=v;try{localStorage.setItem(K,v)}catch(e){}$('ntErr').textContent='';view()};
+['nt','st','fd','fm'].forEach(i=>$(i).addEventListener('input',()=>{$(i+'Err').textContent=''}));
+$('go').onclick=()=>{let ok=true;const st=$('st').value.trim(),fd=$('fd').value.trim(),fm=$('fm').value.trim();
+if(!nt||$('ntEditBox').style.display==='block'){$('ntErr').textContent='Save the Notion database link first.';ok=false}
+if(!/^https?:\/\/\S+$/i.test(st)){$('stErr').textContent='Enter the staging page URL.';ok=false}
+if(!isFigma(fd)){$('fdErr').textContent='Enter a Figma frame link with node-id.';ok=false}
+if(!isFigma(fm)){$('fmErr').textContent='Enter a Figma frame link with node-id.';ok=false}
+if(!ok)return;
+sendPrompt('/design-qa\nStaging: '+st+'\nFigma desktop: '+fd+'\nFigma mobile: '+fm+'\nNotion database: '+nt)};
+</script>

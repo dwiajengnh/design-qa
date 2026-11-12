@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design QA</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--text:#1b1b1b;--muted:#6b6b66;--border:#e3e2dc;--accent:#2f6fde;--danger:#c42b2b;--ok:#2e7d32;--chip:#f1f0ec}
+@media (prefers-color-scheme:dark){:root{--bg:#1a1a19;--card:#242422;--text:#f1f0ec;--muted:#a3a29b;--border:#3a3a37;--accent:#6c9cf0;--danger:#f08a8a;--ok:#8fd394;--chip:#2e2e2b}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:560px;margin:48px auto;padding:0 16px}
+h1{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:600;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 24px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.f{margin:0 0 16px}
+.sep{border:0;border-top:1px solid var(--border);margin:4px 0 18px}
+label{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;font-size:13px;color:var(--muted);margin:0 0 6px}
+label small{font-size:12px;opacity:.8}
+input{width:100%;height:38px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text);font:inherit;font-size:14px}
+input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent)}
+button{height:38px;padding:0 14px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text);font:inherit;font-size:14px;cursor:pointer;white-space:nowrap}
+button:hover{background:var(--chip)}
+.primary{width:100%;background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;margin-top:4px}
+.primary:hover{filter:brightness(1.08);background:var(--accent)}
+.link{border:0;height:auto;padding:0;background:none;color:var(--accent);font-size:13px}
+.link:hover{background:none;text-decoration:underline}
+.err{color:var(--danger);font-size:13px;margin:4px 0 0}
+.saved{display:flex;align-items:center;gap:8px;background:var(--chip);border-radius:8px;padding:6px 6px 6px 12px;font-size:13px}
+.saved span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.row{display:flex;gap:8px}
+.foot{display:flex;justify-content:space-between;align-items:center;margin:10px 0 0;font-size:13px;color:var(--muted)}
+pre{white-space:pre-wrap;word-break:break-all;background:var(--chip);border-radius:8px;padding:12px;font-size:12.5px;margin:12px 0 0}
+.ti{font-size:16px;line-height:1}
+h1 .ti{font-size:22px;color:var(--accent)}
+.done{color:var(--ok);font-size:13px;margin:10px 0 0}
+</style>
+</head>
+<body>
+<main>
+<h1><i class="ti ti-checklist" aria-hidden="true"></i> Design QA</h1>
+<p class="sub">Fill in the links and start. Claude Code opens with the QA request ready, so you only press Enter.</p>
+<div class="card">
+  <div class="f" data-saved="designqa_notion">
+    <label><i class="ti ti-database" aria-hidden="true"></i>Notion database</label>
+    <div class="saved" hidden><i class="ti ti-lock" aria-hidden="true" style="color:var(--ok)"></i><span></span><button type="button" data-act="edit">Change</button></div>
+    <div class="row edit"><input id="nt" type="url" placeholder="https://www.notion.so/workspace/db-id?v=view-id"><button type="button" data-act="save">Save</button></div>
+    <p class="err" id="ntErr"></p>
+  </div>
+  <div class="f" data-saved="designqa_folder">
+    <label><i class="ti ti-folder" aria-hidden="true"></i><span style="white-space:nowrap">Project folder</span> <small>(optional, where Claude Code runs)</small></label>
+    <div class="saved" hidden><i class="ti ti-lock" aria-hidden="true" style="color:var(--ok)"></i><span></span><button type="button" data-act="edit">Change</button></div>
+    <div class="row edit"><input id="fo" type="text" placeholder="/Users/you/Documents/project"><button type="button" data-act="save">Save</button></div>
+    <p class="err" id="foErr"></p>
+  </div>
+  <hr class="sep">
+  <div class="f"><label for="st"><i class="ti ti-world" aria-hidden="true"></i>Staging page URL</label><input id="st" type="url" placeholder="https://staging.example.com/page/"><p class="err" id="stErr"></p></div>
+  <div class="f"><label for="fd"><i class="ti ti-device-desktop" aria-hidden="true"></i>Figma frame link, desktop</label><input id="fd" type="url" placeholder="https://www.figma.com/design/FILE/Name?node-id=1-2"><p class="err" id="fdErr"></p></div>
+  <div class="f"><label for="fm"><i class="ti ti-device-mobile" aria-hidden="true"></i>Figma frame link, mobile</label><input id="fm" type="url" placeholder="https://www.figma.com/design/FILE/Name?node-id=3-4"><p class="err" id="fmErr"></p></div>
+  <button id="go" class="primary" type="button"><i class="ti ti-player-play" aria-hidden="true" style="vertical-align:-2px;margin-right:6px"></i>Start QA in Claude Code</button>
+  <div class="foot"><span>Needs the Claude desktop app.</span><button id="copy" class="link" type="button"><i class="ti ti-copy" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"></i>Copy command instead</button></div>
+  <p class="done" id="done" hidden></p>
+  <pre id="out" hidden></pre>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const store={get:k=>{try{return localStorage.getItem(k)||''}catch(e){return''}},set:(k,v)=>{try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}};
+const rules={designqa_notion:{input:'nt',ok:v=>/^https:\/\/([a-z0-9-]+\.)?notion\.(so|com|site)\//i.test(v),msg:'Enter a Notion database link.',required:true},
+             designqa_folder:{input:'fo',ok:v=>v===''||/^\//.test(v),msg:'Enter the full folder path, starting with /Users/.',required:false}};
+const vals={};
+document.querySelectorAll('[data-saved]').forEach(box=>{
+  const k=box.dataset.saved,r=rules[k],saved=box.querySelector('.saved'),edit=box.querySelector('.edit'),inp=$(r.input),err=$(r.input+'Err');
+  vals[k]=store.get(k);
+  const view=()=>{const has=!!vals[k];saved.hidden=!has;edit.hidden=has;saved.querySelector('span').textContent=vals[k]};
+  box.querySelector('[data-act=edit]').onclick=()=>{inp.value=vals[k];saved.hidden=true;edit.hidden=false;inp.focus()};
+  box.querySelector('[data-act=save]').onclick=()=>{const v=inp.value.trim();if(!r.ok(v)){err.textContent=r.msg;return}vals[k]=v;store.set(k,v);err.textContent='';view()};
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')box.querySelector('[data-act=save]').click()});
+  box.isEditing=()=>!edit.hidden&&inp.value.trim()!==vals[k];
+  view();
+});
+['nt','fo','st','fd','fm'].forEach(i=>$(i).addEventListener('input',()=>{$(i+'Err').textContent='';$('done').hidden=true}));
+const isFigma=v=>/^https:\/\/(www\.)?figma\.com\/design\/[^/]+\/.*node-id=\d+-\d+/i.test(v);
+function build(){
+  let ok=true;const st=$('st').value.trim(),fd=$('fd').value.trim(),fm=$('fm').value.trim();
+  if(!vals.designqa_notion){$('ntErr').textContent='Save the Notion database link first.';ok=false}
+  document.querySelectorAll('[data-saved]').forEach(b=>{if(b.isEditing()){$(rules[b.dataset.saved].input+'Err').textContent='Click Save first.';ok=false}});
+  if(!/^https?:\/\/\S+$/i.test(st)){$('stErr').textContent='Enter the staging page URL.';ok=false}
+  if(!isFigma(fd)){$('fdErr').textContent='Enter a Figma frame link with node-id.';ok=false}
+  if(!isFigma(fm)){$('fmErr').textContent='Enter a Figma frame link with node-id.';ok=false}
+  if(!ok)return null;
+  return 'Use the design-qa skill to QA this page.\nStaging: '+st+'\nFigma desktop: '+fd+'\nFigma mobile: '+fm+'\nNotion database: '+vals.designqa_notion;
+}
+function note(t){$('done').textContent=t;$('done').hidden=false}
+async function copy(cmd){try{await navigator.clipboard.writeText(cmd);return true}catch(e){return false}}
+$('go').onclick=async()=>{
+  const cmd=build();if(!cmd)return;
+  const p=new URLSearchParams({q:cmd,source:'design-qa-form'});
+  let fo=vals.designqa_folder;if(fo)p.append('folder',fo);
+  const copied=await copy(cmd);
+  location.href='claude://code/new?'+p.toString().replace(/\+/g,'%20');
+  note('Opening Claude Code. Press Enter there to start.'+(copied?' The command is also on your clipboard.':''));
+  setTimeout(()=>{if(document.hasFocus())note('If Claude Code didn\'t open, make sure the Claude desktop app is installed, or use Copy command instead.')},2500);
+};
+$('copy').onclick=async()=>{
+  const cmd=build();if(!cmd)return;
+  $('out').textContent=cmd;$('out').hidden=false;
+  note((await copy(cmd))?'Copied. Paste it into Claude Code to start the QA.':'Copy the command below and paste it into Claude Code.');
+};
+</script>
+</body>
+</html>

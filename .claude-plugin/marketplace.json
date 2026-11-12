@@ -1,0 +1,16 @@
+{
+  "name": "kesato-plugins",
+  "owner": {
+    "name": "Kesato"
+  },
+  "metadata": {
+    "description": "Kesato's Claude Code plugins for design and QA work."
+  },
+  "plugins": [
+    {
+      "name": "design-qa",
+      "source": "./plugins/design-qa",
+      "description": "Compare a staging page with its Figma frames (desktop and mobile) and log each visual bug to Notion with Actual and Expected screenshots."
+    }
+  ]
+}
