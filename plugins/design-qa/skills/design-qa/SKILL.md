@@ -1,5 +1,6 @@
 ---
 name: design-qa
+user-invocable: false
 description: Visual design QA — compare a staging/live web page against its Figma frames (desktop + mobile), find layout/spacing/typography/colour/asset/missing-element mismatches, capture annotated screenshots, and log each bug to a Notion database with Expected (Figma) vs Actual (Staging) screenshots. Use when the user asks to QA, compare, or check a website/staging page against Figma, do design review/pixel check, or report design bugs to Notion.
 ---
 
