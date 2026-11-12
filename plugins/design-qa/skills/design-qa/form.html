@@ -54,6 +54,7 @@ h1 .ti{font-size:22px;color:var(--accent)}
 .result.good{background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--text)}
 .result.bad{background:color-mix(in srgb,var(--danger) 12%,transparent);color:var(--text)}
 button:disabled{opacity:.6;cursor:default;filter:none}
+.result .open{font-weight:600;white-space:nowrap}.result .next{margin-top:6px;font-size:13px;opacity:.8}
 </style>
 </head>
 <body>
@@ -125,18 +126,24 @@ if(LIVE){
   document.querySelector('.sub').textContent='Fill in the links and click Start QA. Claude starts right away and logs the bugs to Notion.';
   $('go').lastChild.textContent='Start QA';
 }
-$('go').onclick=async()=>{
-  if(!build())return;
-  if(LIVE){
-    const body={staging:$('st').value.trim(),figma_desktop:$('fd').value.trim(),figma_mobile:$('fm').value.trim(),notion:vals.designqa_notion};
-    lockForm('Starting…');
+async function submitLive(){
+  const body={staging:$('st').value.trim(),figma_desktop:$('fd').value.trim(),figma_mobile:$('fm').value.trim(),notion:vals.designqa_notion};
+  lockForm('Starting…');
+  // After a QA, Claude needs a few seconds to get ready for the next one: keep trying for up to 60 s.
+  for(let i=0;i<40;i++){
     try{
       const r=await fetch('submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-      if(!r.ok)throw new Error(await r.text());
-      startPolling();
-    }catch(e){unlockForm();note('Couldn\'t reach Claude. Type /design-qa again to reopen the form.')}
-    return;
+      if(r.ok){startPolling();return}
+      if(r.status!==409)throw new Error(await r.text());
+    }catch(e){if(i>2&&!(e instanceof TypeError)){break}}
+    if(i===1)$('go').lastChild.textContent='Waiting for Claude…';
+    await new Promise(res=>setTimeout(res,1500));
   }
+  unlockForm();note('Couldn\'t reach Claude. Type /design-qa in Claude to reopen the form.');
+}
+const startQA=async()=>{
+  if(!build())return;
+  if(LIVE)return submitLive();
   const cmd=build();
   const p=new URLSearchParams({q:cmd,source:'design-qa-form'});
   let fo=vals.designqa_folder;if(fo)p.append('folder',fo);
@@ -145,6 +152,7 @@ $('go').onclick=async()=>{
   note('Opening Claude Code. Press Enter there to start.'+(copied?' The command is also on your clipboard.':''));
   setTimeout(()=>{if(document.hasFocus())note('If Claude Code didn\'t open, make sure the Claude desktop app is installed, or use Copy command instead.')},2500);
 };
+$('go').onclick=startQA;
 $('copy').onclick=async()=>{
   const cmd=build();if(!cmd)return;
   $('out').textContent=cmd;$('out').hidden=false;
@@ -153,7 +161,7 @@ $('copy').onclick=async()=>{
 
 const STEPS=['Reading Figma','Checking the staging page','Capturing screenshots','Writing bugs to Notion','Done'];
 let pollT=null,misses=0;
-function lockForm(label){document.querySelectorAll('input,button').forEach(e=>e.disabled=true);$('go').querySelector('i').className='spin';$('go').querySelector('i').style.marginRight='8px';$('go').lastChild.textContent=label;$('done').hidden=true}
+function lockForm(label){document.querySelectorAll('input,button').forEach(e=>e.disabled=true);$('go').querySelector('i').className='spin';$('go').querySelector('i').style.marginRight='8px';$('go').lastChild.textContent=label;$('done').hidden=true;$('result').hidden=true}
 function unlockForm(){document.querySelectorAll('input,button').forEach(e=>e.disabled=false);$('go').querySelector('i').className='ti ti-player-play';$('go').lastChild.textContent='Start QA'}
 function fmt(sec){sec=Math.max(0,Math.round(sec));const m=Math.floor(sec/60),r=sec%60;return m?m+' min '+r+' s':r+' s'}
 function render(s){
@@ -173,9 +181,9 @@ function render(s){
   if(fin||s.state==='error'){
     clearInterval(pollT);
     const r=$('result');r.hidden=false;r.className='result '+(fin?'good':'bad');r.textContent=(fin?'Done. ':'Stopped. ')+(s.message||'');
-    const go=$('go');go.querySelector('i').className=fin?'ti ti-external-link':'ti ti-refresh';go.querySelector('i').style.marginRight='6px';
-    if(fin&&s.link){go.lastChild.textContent='Open Notion';go.disabled=false;go.onclick=()=>window.open(s.link,'_blank')}
-    else{go.lastChild.textContent=fin?'QA finished':'Type /design-qa in Claude to try again';go.disabled=true}
+    if(fin&&s.link){const a=document.createElement('a');a.href=s.link;a.target='_blank';a.rel='noopener';a.className='open';a.innerHTML='<i class="ti ti-external-link"></i> Open Notion';r.append(' ',a)}
+    const p=document.createElement('div');p.className='next';p.textContent='To QA another page, change the links above and click Start QA.';r.append(p);
+    unlockForm();$('go').style.marginRight='';$('go').querySelector('i').style.marginRight='6px';
   }
 }
 async function poll(){try{const r=await fetch('status',{cache:'no-store'});if(!r.ok)throw 0;misses=0;const s=await r.json();if(s.state&&s.state!=='idle')render(s)}catch(e){if(++misses>20){clearInterval(pollT);$('nowMsg').textContent='Lost connection to Claude. Check the Claude window.'}}}

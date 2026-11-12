@@ -2,6 +2,7 @@
 """Serve the Design QA form on localhost, wait for one submission, then show progress.
 
 Usage: python3 form_server.py [--timeout SECONDS] [--no-open]
+       python3 form_server.py --again   # after a QA is done: let the same open page start the next QA
 
 Opens form.html in the default browser at http://127.0.0.1:<port>/<secret>/ and
 blocks until the user clicks Start QA. Then it:
@@ -10,6 +11,10 @@ blocks until the user clicks Start QA. Then it:
   2. prints one JSON line to stdout and exits 0:
      {"staging": ..., "figma_desktop": ..., "figma_mobile": ..., "notion": ...}
 Exits 2 on timeout.
+
+--again takes over the port and secret path of the last form (saved in
+~/.design-qa/session.json), stops its progress server, and waits for the next
+submission from the page that is still open. It doesn't open a new browser tab.
 
 Safety: listens on 127.0.0.1 only, the page lives under a random one-time path,
 it accepts a single submission, and it only accepts the four expected links
@@ -22,6 +27,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 FORM = os.path.join(os.path.dirname(HERE), 'form.html')
 STATUS = os.path.expanduser('~/.design-qa/status.json')
+SESSION = os.path.expanduser('~/.design-qa/session.json')
+HANDOVER = os.path.expanduser('~/.design-qa/handover')
 PREFERRED_PORT = 47321  # fixed so the browser remembers the saved Notion link between runs
 
 FIGMA = re.compile(r'^https://(www\.)?figma\.com/design/[^/\s]+/\S*node-id=\d+-\d+\S*$', re.I)
@@ -31,7 +38,15 @@ KEYS = ('staging', 'figma_desktop', 'figma_mobile', 'notion')
 
 args = sys.argv[1:]
 PROGRESS_MODE = '--progress' in args
-TOKEN = args[args.index('--token') + 1] if '--token' in args else secrets.token_urlsafe(16)
+AGAIN = '--again' in args
+_session = {}
+if AGAIN:
+    try:
+        with open(SESSION) as f:
+            _session = json.load(f)
+    except Exception:
+        raise SystemExit('no earlier form to reuse; run without --again')
+TOKEN = args[args.index('--token') + 1] if '--token' in args else _session.get('token') or secrets.token_urlsafe(16)
 
 result = {}
 done = threading.Event()
@@ -82,7 +97,7 @@ class Handler(BaseHTTPRequestHandler):
             with open(FORM, 'rb') as f:
                 return self._send(200, f.read(), 'text/html; charset=utf-8')
         if p == f'/{TOKEN}/status':
-            s = read_status() if (PROGRESS_MODE or done.is_set()) else {'state': 'idle'}
+            s = read_status() if (PROGRESS_MODE or AGAIN or done.is_set()) else {'state': 'idle'}
             return self._send(200, json.dumps(s), 'application/json')
         self._send(404, 'not found')
 
@@ -126,7 +141,13 @@ def progress_main():
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     start, end_seen = time.time(), None
     while time.time() - start < 4 * 3600:
-        time.sleep(2)
+        time.sleep(0.5)
+        if os.path.exists(HANDOVER):  # a --again server wants this port
+            try:
+                os.remove(HANDOVER)
+            except OSError:
+                pass
+            break
         st = read_status().get('state')
         if st in ('done', 'error'):
             end_seen = end_seen or time.time()
@@ -139,14 +160,24 @@ def main():
     if PROGRESS_MODE:
         return progress_main()
     timeout = int(args[args.index('--timeout') + 1]) if '--timeout' in args else 1800
-    srv = bind(PREFERRED_PORT) or bind(0)
+    if AGAIN:
+        os.makedirs(os.path.dirname(HANDOVER), exist_ok=True)
+        open(HANDOVER, 'w').close()
+        srv = bind(int(_session['port']), tries=100)
+        if os.path.exists(HANDOVER):
+            os.remove(HANDOVER)
+    else:
+        srv = bind(PREFERRED_PORT) or bind(0)
     if not srv:
         raise SystemExit('could not start local server')
     port = srv.server_port
     url = f'http://127.0.0.1:{port}/{TOKEN}/'
+    os.makedirs(os.path.dirname(SESSION), exist_ok=True)
+    with open(SESSION, 'w') as f:
+        json.dump({'port': port, 'token': TOKEN}, f)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     print(f'FORM_URL {url}', file=sys.stderr, flush=True)
-    if '--no-open' not in args:
+    if '--no-open' not in args and not AGAIN:
         webbrowser.open(url)
     if not done.wait(timeout):
         print('TIMEOUT no submission', file=sys.stderr)

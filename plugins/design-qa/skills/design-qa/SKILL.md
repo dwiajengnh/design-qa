@@ -30,6 +30,7 @@ If the skill is invoked without links (for example a bare `/design-qa`, or "open
   - `step 3 "Capturing screenshots"` before `capture.mjs`
   - `step 4 "Writing bugs to Notion"` before creating pages and uploads
   - `done "<N> bugs logged: <x> Desktop, <y> Mobile, <z> Both." --link <notion database url>` at the very end
+  - **Right after `done` (or `error`), start the next-page listener**: run `python3 "<skill-dir>/scripts/form_server.py" --again --timeout 7200` in the background, give your report, and end the turn. The open page unlocks so the user can change the links and click Start QA again. When it exits 0, run a new QA with the new JSON the same way (and start `--again` again at the end). If it exits 2, just say in one line that the form closed and `/design-qa` reopens it.
   - `error "<what went wrong, in plain words>"` if you have to stop
 - **Never pre-fill the Notion database link** from memory or earlier runs. The form starts empty; the browser remembers it after the user saves it once.
 - If the script can't run (no python3, or no browser), ask for the four links in text instead.
