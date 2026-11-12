@@ -45,13 +45,13 @@ h1 .ti{font-size:22px;color:var(--accent)}
 <div class="card">
   <div class="f" data-saved="designqa_notion">
     <label><i class="ti ti-database" aria-hidden="true"></i>Notion database</label>
-    <div class="saved" hidden><i class="ti ti-lock" aria-hidden="true" style="color:var(--ok)"></i><span></span><button type="button" data-act="edit">Change</button></div>
+    <div class="saved" hidden><i class="ti ti-lock" aria-hidden="true" style="color:var(--ok)"></i><span></span><button type="button" data-act="edit">Change</button><button type="button" data-act="clear" aria-label="Remove saved value">Remove</button></div>
     <div class="row edit"><input id="nt" type="url" placeholder="https://www.notion.so/workspace/db-id?v=view-id"><button type="button" data-act="save">Save</button></div>
     <p class="err" id="ntErr"></p>
   </div>
   <div class="f" data-saved="designqa_folder">
     <label><i class="ti ti-folder" aria-hidden="true"></i><span style="white-space:nowrap">Project folder</span> <small>(optional, where Claude Code runs)</small></label>
-    <div class="saved" hidden><i class="ti ti-lock" aria-hidden="true" style="color:var(--ok)"></i><span></span><button type="button" data-act="edit">Change</button></div>
+    <div class="saved" hidden><i class="ti ti-lock" aria-hidden="true" style="color:var(--ok)"></i><span></span><button type="button" data-act="edit">Change</button><button type="button" data-act="clear" aria-label="Remove saved value">Remove</button></div>
     <div class="row edit"><input id="fo" type="text" placeholder="/Users/you/Documents/project"><button type="button" data-act="save">Save</button></div>
     <p class="err" id="foErr"></p>
   </div>
@@ -76,6 +76,7 @@ document.querySelectorAll('[data-saved]').forEach(box=>{
   vals[k]=store.get(k);
   const view=()=>{const has=!!vals[k];saved.hidden=!has;edit.hidden=has;saved.querySelector('span').textContent=vals[k]};
   box.querySelector('[data-act=edit]').onclick=()=>{inp.value=vals[k];saved.hidden=true;edit.hidden=false;inp.focus()};
+  box.querySelector('[data-act=clear]').onclick=()=>{vals[k]='';store.set(k,'');inp.value='';err.textContent='';view();inp.focus()};
   box.querySelector('[data-act=save]').onclick=()=>{const v=inp.value.trim();if(!r.ok(v)){err.textContent=r.msg;return}vals[k]=v;store.set(k,v);err.textContent='';view()};
   inp.addEventListener('keydown',e=>{if(e.key==='Enter')box.querySelector('[data-act=save]').click()});
   box.isEditing=()=>!edit.hidden&&inp.value.trim()!==vals[k];
