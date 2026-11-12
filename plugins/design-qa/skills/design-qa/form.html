@@ -54,7 +54,7 @@ h1 .ti{font-size:22px;color:var(--accent)}
 .result.good{background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--text)}
 .result.bad{background:color-mix(in srgb,var(--danger) 12%,transparent);color:var(--text)}
 button:disabled{opacity:.6;cursor:default;filter:none}
-.result .open{display:inline-flex;align-items:center;gap:4px;margin-top:6px;color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:3px}.result .open:hover{filter:brightness(1.15)}.result .open .ti{font-size:16px}.result .next{margin-top:6px;font-size:13px;opacity:.8}
+.result .open{display:inline-flex;align-items:center;gap:4px;margin-top:6px;color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:3px}.result .open:hover{filter:brightness(1.15)}.result .open .ti{font-size:16px}
 </style>
 </head>
 <body>
@@ -79,12 +79,12 @@ button:disabled{opacity:.6;cursor:default;filter:none}
   <div class="f"><label for="fd"><i class="ti ti-device-desktop" aria-hidden="true"></i>Figma frame link, desktop</label><input id="fd" type="url" placeholder="https://www.figma.com/design/FILE/Name?node-id=1-2"><p class="err" id="fdErr"></p></div>
   <div class="f"><label for="fm"><i class="ti ti-device-mobile" aria-hidden="true"></i>Figma frame link, mobile</label><input id="fm" type="url" placeholder="https://www.figma.com/design/FILE/Name?node-id=3-4"><p class="err" id="fmErr"></p></div>
   <button id="go" class="primary" type="button"><i class="ti ti-player-play" aria-hidden="true" style="vertical-align:-2px;margin-right:6px"></i><span>Start QA in Claude Code</span></button>
-  <div class="result" id="result" hidden></div>
   <div class="foot"><span>Needs the Claude desktop app.</span><button id="copy" class="link" type="button"><i class="ti ti-copy" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"></i>Copy command instead</button></div>
   <p class="done" id="done" hidden></p>
   <div class="prog" id="prog" hidden>
     <ul class="steps" id="steps"></ul>
     <div class="now" id="now"><span id="nowMsg"></span><span id="nowTime"></span></div>
+    <div class="result" id="result" hidden></div>
   </div>
   <pre id="out" hidden></pre>
 </div>
@@ -184,7 +184,6 @@ function render(s){
     if(fin&&s.link){const a=document.createElement('a');a.href=s.link;a.target='_blank';a.rel='noopener';a.className='open';a.innerHTML='Open bugs in Notion<i class="ti ti-arrow-up-right"></i>';r.append(document.createElement('br'),a)}
     if(fin){['st','fd','fm'].forEach(i=>$(i).value='')}
     r.scrollIntoView({block:'nearest',behavior:'smooth'})
-    const p=document.createElement('div');p.className='next';p.textContent=fin?'To QA another page, paste the new links above and click Start QA.':'Fix the links above if needed and click Start QA to try again.';r.append(p);
     unlockForm();$('go').style.marginRight='';$('go').querySelector('i').style.marginRight='6px';
   }
 }
