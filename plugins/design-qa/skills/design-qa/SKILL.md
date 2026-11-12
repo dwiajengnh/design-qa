@@ -73,7 +73,7 @@ If the skill is invoked without links (for example a bare `/design-qa`, or "open
 - If `scrollTo` doesn't repaint in the built-in browser, do one real `computer` scroll and then take the screenshot.
 
 ### 3. Bug list
-For each bug, decide: Name, Page/section, Device (Desktop / Mobile / Both), Type (Bug / Improvement), actual on staging, and expected from Figma. Don't show it for approval; go straight on to screenshots and Notion. Keep measured values out of the Notion body.
+For each bug, decide: Name, Page/section, Device (Desktop / Mobile / Both), Type (Bug / Improvement), actual on staging, and expected from Figma. Don't show it for approval; go straight on to screenshots and Notion. For size, spacing and font-size bugs, note the staging value and the Figma value; they go in the Notion body (see the writing rules).
 
 ### 4. Annotated staging screenshots
 Write a spec JSON with one shot per bug and run:
@@ -109,14 +109,18 @@ Put the measured numbers in the label, e.g. `'Card height 520px – Figma 580px'
    ```
    Writing rules for the body:
    - Short bullet points, not sentences. Use 1–3 bullets per section.
-   - No pixel values, hex codes or token names. Describe the issue in plain words, e.g. "Title too small", "Text not aligned with the image", "Wrong font", "WhatsApp button missing".
+   - Plain words first, e.g. "Title too small", "Text not aligned with the image", "Wrong font", "WhatsApp button missing".
+   - **Size bugs must give the size.** When the bug is about a size, spacing/gap, padding or font size, put the staging value in Actual and the **Figma value in Expected**, in px, e.g. "Card 320×520px" / "Card 320×580px", "Gap between cards 16px" / "Gap between cards 24px", "Title 28px" / "Title 36px". Use the Figma value from `get_metadata` or `get_variable_defs`, not a guess.
+   - Still no hex codes or token names. For colour bugs, use plain words ("Text too light", "Wrong button colour").
    - Example:
      ```
      ### Actual (Staging)
-     - Title smaller than design
+     - Title too small: 28px
+     - Card height 520px
      - Text starts too far left
      ### Expected (Figma)
-     - Bigger title
+     - Title 36px
+     - Card height 580px
      - Text aligned with the image above
      ```
 5. Re-fetch one page to confirm the images rendered (they show as `notion-file-block://...`).
