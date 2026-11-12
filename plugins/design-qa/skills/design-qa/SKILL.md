@@ -16,10 +16,10 @@ Compare a built page against its Figma design and log each visual mismatch as a 
 If a connector is missing or unauthorized, tell the user how to connect it. Don't guess values from memory.
 
 ## Launcher form
-If the skill is invoked without links (for example a bare `/design-qa`, or "open the QA form"), show the form instead of asking in text:
-- If the `show_widget` tool is available (call `read_me` first, silently), render `assets/launcher-widget.html`. Replace `{{NOTION_DEFAULT}}` with the Notion database link you remember for this user or project, or with an empty string. The form's Start QA button sends the `/design-qa` request back to chat, with every input.
-- If it isn't available (for example Claude Code in a terminal), open the browser form for the user with `open "<skill-dir>/form.html"` (macOS; `xdg-open` on Linux), and say in one line that it opened. Also say they can paste the four links here instead.
-- **Remember the Notion link.** After the first QA, save the Notion database link the user gave to memory (if a memory system is available), so the next form opens with it filled in. Don't ask for it again in later runs unless the user wants a different database.
+If the skill is invoked without links (for example a bare `/design-qa`, or "open the QA form"), open the browser form instead of asking in text:
+- Run `open "<skill-dir>/form.html"` (macOS; `xdg-open` on Linux, `start` on Windows). Say in one line that the form opened in the browser, and that they can also paste the four links here instead.
+- **Never pre-fill the Notion database link** from memory or earlier runs. The form starts empty; after the user saves the link once, the browser remembers it for them.
+- Only if the browser can't be opened: render `assets/launcher-widget.html` with `show_widget` (call `read_me` first, silently), or ask for the four inputs in text.
 
 ## Inputs to collect (ask only for what's missing)
 1. Staging URL(s). If staging needs a login, the user logs in themselves; never type passwords.

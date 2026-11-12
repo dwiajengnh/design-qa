@@ -15,7 +15,7 @@
 <button id="go" style="width:100%;margin-top:4px"><i class="ti ti-player-play" aria-hidden="true" style="font-size:16px;vertical-align:-2px;margin-right:6px"></i>Start QA ↗</button>
 </div>
 <script>
-const DEF='{{NOTION_DEFAULT}}';const K='designqa_notion';const $=id=>document.getElementById(id);
+const DEF='';const K='designqa_notion';const $=id=>document.getElementById(id);
 let nt=DEF;try{nt=localStorage.getItem(K)||DEF}catch(e){}
 function view(){const has=!!nt;$('ntSaved').style.display=has?'flex':'none';$('ntEditBox').style.display=has?'none':'block';$('ntText').textContent=nt}
 view();
