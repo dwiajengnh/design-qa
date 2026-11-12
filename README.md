@@ -13,7 +13,7 @@ Update later with `/plugin marketplace update kesato-plugins`.
 ## design-qa
 Compares a staging page with its Figma frames (desktop and mobile) and logs each visual bug to a Notion database, with an Actual (Staging) and an Expected (Figma) screenshot.
 
-**Start a QA:** type `/design-qa` and fill in the form, or open `plugins/design-qa/skills/design-qa/form.html` in your browser.
+**Start a QA:** type `/design-qa`. The form opens in your browser: enter the Notion database link (only the first time), the staging URL, and the Figma desktop and mobile frame links, then click **Start QA**. Claude starts right away and writes every bug to Notion with screenshots.
 
 **You need:**
 - Figma and Notion connected in your Claude account

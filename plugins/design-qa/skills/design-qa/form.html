@@ -59,7 +59,7 @@ h1 .ti{font-size:22px;color:var(--accent)}
   <div class="f"><label for="st"><i class="ti ti-world" aria-hidden="true"></i>Staging page URL</label><input id="st" type="url" placeholder="https://staging.example.com/page/"><p class="err" id="stErr"></p></div>
   <div class="f"><label for="fd"><i class="ti ti-device-desktop" aria-hidden="true"></i>Figma frame link, desktop</label><input id="fd" type="url" placeholder="https://www.figma.com/design/FILE/Name?node-id=1-2"><p class="err" id="fdErr"></p></div>
   <div class="f"><label for="fm"><i class="ti ti-device-mobile" aria-hidden="true"></i>Figma frame link, mobile</label><input id="fm" type="url" placeholder="https://www.figma.com/design/FILE/Name?node-id=3-4"><p class="err" id="fmErr"></p></div>
-  <button id="go" class="primary" type="button"><i class="ti ti-player-play" aria-hidden="true" style="vertical-align:-2px;margin-right:6px"></i>Start QA in Claude Code</button>
+  <button id="go" class="primary" type="button"><i class="ti ti-player-play" aria-hidden="true" style="vertical-align:-2px;margin-right:6px"></i><span>Start QA in Claude Code</span></button>
   <div class="foot"><span>Needs the Claude desktop app.</span><button id="copy" class="link" type="button"><i class="ti ti-copy" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"></i>Copy command instead</button></div>
   <p class="done" id="done" hidden></p>
   <pre id="out" hidden></pre>
@@ -95,8 +95,27 @@ function build(){
 }
 function note(t){$('done').textContent=t;$('done').hidden=false}
 async function copy(cmd){try{await navigator.clipboard.writeText(cmd);return true}catch(e){return false}}
+const LIVE=location.protocol==='http:'&&location.hostname==='127.0.0.1';
+if(LIVE){
+  document.querySelector('[data-saved=designqa_folder]').hidden=true;
+  document.querySelector('.foot').hidden=true;
+  document.querySelector('.sub').textContent='Fill in the links and click Start QA. Claude starts right away and logs the bugs to Notion.';
+  $('go').lastChild.textContent='Start QA';
+}
 $('go').onclick=async()=>{
-  const cmd=build();if(!cmd)return;
+  if(!build())return;
+  if(LIVE){
+    const body={staging:$('st').value.trim(),figma_desktop:$('fd').value.trim(),figma_mobile:$('fm').value.trim(),notion:vals.designqa_notion};
+    $('go').disabled=true;
+    try{
+      const r=await fetch('submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(!r.ok)throw new Error(await r.text());
+      document.querySelectorAll('input,button').forEach(e=>e.disabled=true);
+      note('QA started. Claude is working on it now. You can close this tab.');
+    }catch(e){$('go').disabled=false;note('Couldn\'t reach Claude. Type /design-qa again to reopen the form.')}
+    return;
+  }
+  const cmd=build();
   const p=new URLSearchParams({q:cmd,source:'design-qa-form'});
   let fo=vals.designqa_folder;if(fo)p.append('folder',fo);
   const copied=await copy(cmd);

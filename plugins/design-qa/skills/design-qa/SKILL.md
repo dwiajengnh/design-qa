@@ -16,10 +16,13 @@ Compare a built page against its Figma design and log each visual mismatch as a 
 If a connector is missing or unauthorized, tell the user how to connect it. Don't guess values from memory.
 
 ## Launcher form
-If the skill is invoked without links (for example a bare `/design-qa`, or "open the QA form"), open the browser form instead of asking in text:
-- Run `open "<skill-dir>/form.html"` (macOS; `xdg-open` on Linux, `start` on Windows). Say in one line that the form opened in the browser, and that they can also paste the four links here instead.
-- **Never pre-fill the Notion database link** from memory or earlier runs. The form starts empty; after the user saves the link once, the browser remembers it for them.
-- Only if the browser can't be opened: render `assets/launcher-widget.html` with `show_widget` (call `read_me` first, silently), or ask for the four inputs in text.
+If the skill is invoked without links (for example a bare `/design-qa`, or "open the QA form"):
+1. Start the form with Bash **in the background** (`run_in_background: true`): `python3 "<skill-dir>/scripts/form_server.py"`. It opens the form in the browser on a private localhost page and waits.
+2. Say in one line that the form opened in the browser. Then end your turn and wait; don't poll. You're notified when the script exits.
+3. When it exits with code 0, its stdout is one JSON line: `{"staging", "figma_desktop", "figma_mobile", "notion"}`. Treat these four values as the user's inputs and **start the QA immediately**, without asking anything.
+4. If it exits with code 2 (no submission within 30 minutes), say the form timed out and that `/design-qa` reopens it.
+- **Never pre-fill the Notion database link** from memory or earlier runs. The form starts empty; the browser remembers it after the user saves it once.
+- If the script can't run (no python3, or no browser), ask for the four links in text instead.
 
 ## Inputs to collect (ask only for what's missing)
 1. Staging URL(s). If staging needs a login, the user logs in themselves; never type passwords.
@@ -32,7 +35,7 @@ If the skill is invoked without links (for example a bare `/design-qa`, or "open
 - Ignore staging-only artefacts such as dev banners (e.g. WPML) and cookie bars.
 - **Verify before you report.** If something looks broken in the built-in browser, such as a video not playing, a grey background, or animations, re-check it in headless Chrome (`capture.mjs`) first. The built-in pane often doesn't render video.
 - Flag uncertain items, e.g. a font weight judged by eye, as "verify with designer".
-- **Show the bug list in chat and get an OK before writing to Notion**, unless the user already said to write.
+- **Don't ask for approval.** Write every bug straight to Notion; don't show the bug list first and don't wait for an OK.
 - Never delete Notion pages or databases unless the user asks. Auto mode may block deletes; if so, tell the user.
 
 ## Workflow
@@ -56,8 +59,8 @@ If the skill is invoked without links (for example a bare `/design-qa`, or "open
 - Check for elements present in Figma but missing on staging, e.g. floating buttons, icons and badges.
 - If `scrollTo` doesn't repaint in the built-in browser, do one real `computer` scroll and then take the screenshot.
 
-### 3. Bug list → user approval
-For each bug, give: Name, Page/section, Device (Desktop / Mobile / Both), Type (Bug / Improvement), actual on staging, and expected from Figma. Show it as a table and wait for the OK. You may include the measured values in this chat table, but leave them out of the Notion body.
+### 3. Bug list
+For each bug, decide: Name, Page/section, Device (Desktop / Mobile / Both), Type (Bug / Improvement), actual on staging, and expected from Figma. Don't show it for approval; go straight on to screenshots and Notion. Keep measured values out of the Notion body.
 
 ### 4. Annotated staging screenshots
 Write a spec JSON with one shot per bug and run:
