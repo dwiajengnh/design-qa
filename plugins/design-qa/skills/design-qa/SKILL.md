@@ -54,7 +54,8 @@ If the skill is invoked without links (for example a bare `/design-qa`, or "open
 - `get_metadata(fileKey, nodeId)` on each frame. Note the **frame name** (used for the Notion `Page` property), the top-level section node IDs, and their x/y/width/height; these are the expected sizes.
   - If `get_metadata` fails because the response is too large (long pages), skip it: take one full-frame `get_screenshot` at native size (`maxDimension` = frame height), then `png_tools.py slice` it and `png_tools.py crop` each section by y range.
 - `get_variable_defs` on the frame gives the type scale, colour tokens and shadows (e.g. `Paragraph/16 = Lato 16/26`, `Neutral/600 = #575757`). Compare staging against these.
-- `get_screenshot(fileKey, sectionNodeId, maxDimension=1440)` for each section. Download it with the curl the tool prints, into `<scratch>/figma/sNN_<name>.png`.
+- **Fast path (same images):** take ONE `get_screenshot` of the whole frame with `maxDimension` = the frame height, download it, and check its pixel size with `png_tools.py`. If it came back at full size (width = frame width), crop each section from it with `png_tools.py crop` using the section y/height from `get_metadata`. If it came back smaller (downscaled), don't use it; fall back to the per-section call below, so images stay sharp.
+- Fallback: `get_screenshot(fileKey, sectionNodeId, maxDimension=1440)` for each section. Download it with the curl the tool prints, into `<scratch>/figma/sNN_<name>.png`.
   - Don't screenshot a whole 10,000px frame at full size; it gets downscaled. For a tall mobile frame, fetch it at native width, then run `png_tools.py slice`.
   - To get an exact colour from Figma pixels, use `python3 -I scripts/png_tools.py color img.png x0,y0,x1,y1`. It returns the darkest pixel, which is the text colour on a light background.
 
@@ -64,6 +65,7 @@ If the skill is invoked without links (for example a bare `/design-qa`, or "open
   ```js
   [...document.querySelectorAll('main section, article section')].map(e=>[e.className.split(' ')[0], Math.round(e.getBoundingClientRect().top+scrollY), e.offsetHeight])
   ```
+- **Measure in one go:** per viewport, run ONE script that first scrolls to the bottom and back (so lazy-loaded parts render), then returns JSON for every section and its key children (rect, fontSize, fontWeight, lineHeight, color, padding, borderRadius, filter). Compare from that JSON; only make extra calls to re-check a suspected bug.
 - Measure the real values with `getBoundingClientRect` and `getComputedStyle` (fontSize, fontWeight, lineHeight, color, padding, borderRadius, filter). Don't rely on screenshots for numbers.
 - Check `document.documentElement.scrollWidth === innerWidth` on mobile to catch horizontal scroll.
 - Check for elements present in Figma but missing on staging, e.g. floating buttons, icons and badges.
@@ -92,10 +94,10 @@ Put the measured numbers in the label, e.g. `'Card height 520px – Figma 580px'
      - Notion can only sort by an existing column. If the database has no created-time column, add one with `notion-update-data-source` → `ADD COLUMN "Created time" CREATED_TIME` (visible, not hidden), then `SORT BY "Created time" ASC`.
      - `SHOW` in `notion-update-view` replaces the whole list of visible columns. List every existing column, plus the new one.
    - Create the pages in the order of the bug list, so they read top to bottom the same way.
-2. Create one page per bug with `notion-create-pages` (properties only, plus the text body).
+2. Create **all** bug pages in ONE `notion-create-pages` call (pages array in bug-list order; properties only).
    - **`Page` property = the exact Figma frame name** (the root node's `name` in `get_metadata`, copied character for character). Use the desktop frame name for Desktop and Both bugs, and the mobile frame name for Mobile bugs. Don't add the section or rename it. If `get_metadata` is too large to read the name, ask the user for the frame name.
-3. Upload the images. Call `notion-create-file-upload` once per image (each upload attaches only once, so reused Figma images need their own upload). Write a manifest with lines `upload_url token file`, then run `bash scripts/notion_upload.sh manifest.txt`. Each upload URL works once; re-running gives 401, so check the first run's output.
-4. Set each page body with `notion-update-page` → `replace_content`, using **exactly this format**: Actual first, then Expected. No Severity line, no Links section.
+3. Upload the images. Make all `notion-create-file-upload` calls in parallel in one message, one per image (each upload attaches only once, so reused Figma images need their own upload). Write a manifest with lines `upload_url token file`, then run `bash scripts/notion_upload.sh manifest.txt`. Each upload URL works once; re-running gives 401, so check the first run's output.
+4. Set every page body with `notion-update-page` → `replace_content` (all calls in parallel in one message), using **exactly this format**: Actual first, then Expected. No Severity line, no Links section.
    ```
    ### Actual (Staging)
    - <what is wrong, short>
