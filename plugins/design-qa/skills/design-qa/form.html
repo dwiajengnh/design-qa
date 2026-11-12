@@ -36,6 +36,24 @@ pre{white-space:pre-wrap;word-break:break-all;background:var(--chip);border-radi
 .ti{font-size:16px;line-height:1}
 h1 .ti{font-size:22px;color:var(--accent)}
 .done{color:var(--ok);font-size:13px;margin:10px 0 0}
+.prog{margin:16px 0 0;border-top:1px solid var(--border);padding-top:16px}
+.steps{list-style:none;margin:0;padding:0}
+.steps li{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:14px;color:var(--muted)}
+.steps li .ic{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:1.5px solid var(--border);flex:none}
+.steps li.cur{color:var(--text);font-weight:600}
+.steps li.cur .ic{border-color:var(--accent)}
+.steps li.ok{color:var(--text)}
+.steps li.ok .ic{border-color:var(--ok);background:var(--ok);color:var(--card)}
+.steps li.ok .ic .ti{font-size:13px}
+.spin{width:12px;height:12px;border:2px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.primary .spin{border-color:#fff;border-right-color:transparent;vertical-align:-1px}
+.now{margin:10px 0 0;padding:10px 12px;background:var(--chip);border-radius:8px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:12px}
+.now b{color:var(--text);font-weight:500}
+.result{margin:12px 0 0;padding:12px;border-radius:8px;font-size:14px}
+.result.good{background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--text)}
+.result.bad{background:color-mix(in srgb,var(--danger) 12%,transparent);color:var(--text)}
+button:disabled{opacity:.6;cursor:default;filter:none}
 </style>
 </head>
 <body>
@@ -62,6 +80,11 @@ h1 .ti{font-size:22px;color:var(--accent)}
   <button id="go" class="primary" type="button"><i class="ti ti-player-play" aria-hidden="true" style="vertical-align:-2px;margin-right:6px"></i><span>Start QA in Claude Code</span></button>
   <div class="foot"><span>Needs the Claude desktop app.</span><button id="copy" class="link" type="button"><i class="ti ti-copy" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"></i>Copy command instead</button></div>
   <p class="done" id="done" hidden></p>
+  <div class="prog" id="prog" hidden>
+    <ul class="steps" id="steps"></ul>
+    <div class="now" id="now"><span id="nowMsg"></span><span id="nowTime"></span></div>
+    <div class="result" id="result" hidden></div>
+  </div>
   <pre id="out" hidden></pre>
 </div>
 </main>
@@ -106,13 +129,12 @@ $('go').onclick=async()=>{
   if(!build())return;
   if(LIVE){
     const body={staging:$('st').value.trim(),figma_desktop:$('fd').value.trim(),figma_mobile:$('fm').value.trim(),notion:vals.designqa_notion};
-    $('go').disabled=true;
+    lockForm('Starting…');
     try{
       const r=await fetch('submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       if(!r.ok)throw new Error(await r.text());
-      document.querySelectorAll('input,button').forEach(e=>e.disabled=true);
-      note('QA started. Claude is working on it now. You can close this tab.');
-    }catch(e){$('go').disabled=false;note('Couldn\'t reach Claude. Type /design-qa again to reopen the form.')}
+      startPolling();
+    }catch(e){unlockForm();note('Couldn\'t reach Claude. Type /design-qa again to reopen the form.')}
     return;
   }
   const cmd=build();
@@ -128,6 +150,37 @@ $('copy').onclick=async()=>{
   $('out').textContent=cmd;$('out').hidden=false;
   note((await copy(cmd))?'Copied. Paste it into Claude Code to start the QA.':'Copy the command below and paste it into Claude Code.');
 };
+
+const STEPS=['Reading Figma','Checking the staging page','Capturing screenshots','Writing bugs to Notion','Done'];
+let pollT=null,misses=0;
+function lockForm(label){document.querySelectorAll('input,button').forEach(e=>e.disabled=true);$('go').querySelector('i').className='spin';$('go').querySelector('i').style.marginRight='8px';$('go').lastChild.textContent=label;$('done').hidden=true}
+function unlockForm(){document.querySelectorAll('input,button').forEach(e=>e.disabled=false);$('go').querySelector('i').className='ti ti-player-play';$('go').lastChild.textContent='Start QA'}
+function fmt(sec){sec=Math.max(0,Math.round(sec));const m=Math.floor(sec/60),r=sec%60;return m?m+' min '+r+' s':r+' s'}
+function render(s){
+  $('prog').hidden=false;
+  const steps=s.steps||STEPS,cur=s.step||0,fin=s.state==='done';
+  $('steps').innerHTML='';
+  steps.forEach((t,i)=>{const n=i+1,li=document.createElement('li');
+    const ok=fin||n<cur, now=!fin&&n===cur&&s.state==='running';
+    li.className=ok?'ok':now?'cur':'';
+    li.innerHTML='<span class="ic">'+(ok?'<i class="ti ti-check"></i>':now?'<span class="spin"></span>':'')+'</span>';
+    li.append(t);$('steps').append(li)});
+  const el=(s.updated||Date.now()/1000)-(s.started||Date.now()/1000);
+  $('nowMsg').innerHTML='';const b=document.createElement('b');b.textContent=s.message||'Starting';$('nowMsg').append(b);
+  $('nowTime').textContent=fmt(s.state==='running'?Date.now()/1000-(s.started||Date.now()/1000):el);
+  $('now').hidden=fin;
+  if(s.state==='running'){lockForm(cur?'QA running… step '+Math.min(cur,4)+' of 4':'Starting…')}
+  if(fin||s.state==='error'){
+    clearInterval(pollT);
+    const r=$('result');r.hidden=false;r.className='result '+(fin?'good':'bad');r.textContent=(fin?'Done. ':'Stopped. ')+(s.message||'');
+    const go=$('go');go.querySelector('i').className=fin?'ti ti-external-link':'ti ti-refresh';go.querySelector('i').style.marginRight='6px';
+    if(fin&&s.link){go.lastChild.textContent='Open Notion';go.disabled=false;go.onclick=()=>window.open(s.link,'_blank')}
+    else{go.lastChild.textContent=fin?'QA finished':'Type /design-qa in Claude to try again';go.disabled=true}
+  }
+}
+async function poll(){try{const r=await fetch('status',{cache:'no-store'});if(!r.ok)throw 0;misses=0;const s=await r.json();if(s.state&&s.state!=='idle')render(s)}catch(e){if(++misses>20){clearInterval(pollT);$('nowMsg').textContent='Lost connection to Claude. Check the Claude window.'}}}
+function startPolling(){poll();clearInterval(pollT);pollT=setInterval(poll,1500)}
+if(LIVE){fetch('status',{cache:'no-store'}).then(r=>r.json()).then(s=>{if(s.state&&s.state!=='idle'){render(s);startPolling()}}).catch(()=>{})}
 </script>
 </body>
 </html>

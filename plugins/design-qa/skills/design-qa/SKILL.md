@@ -21,6 +21,13 @@ If the skill is invoked without links (for example a bare `/design-qa`, or "open
 2. Say in one line that the form opened in the browser. Then end your turn and wait; don't poll. You're notified when the script exits.
 3. When it exits with code 0, its stdout is one JSON line: `{"staging", "figma_desktop", "figma_mobile", "notion"}`. Treat these four values as the user's inputs and **start the QA immediately**, without asking anything.
 4. If it exits with code 2 (no submission within 30 minutes), say the form timed out and that `/design-qa` reopens it.
+- **Report progress to the form while you work** (the page shows it live and keeps the button disabled until the end). Run `python3 "<skill-dir>/scripts/qa_status.py" ...` at each stage, with a short plain-words message:
+  - `step 1 "Reading the Figma frames"` when you start on Figma
+  - `step 2 "Checking the staging page"` when you start measuring staging (update the message per section if you like)
+  - `step 3 "Capturing screenshots"` before `capture.mjs`
+  - `step 4 "Writing bugs to Notion"` before creating pages and uploads
+  - `done "<N> bugs logged: <x> Desktop, <y> Mobile, <z> Both." --link <notion database url>` at the very end
+  - `error "<what went wrong, in plain words>"` if you have to stop
 - **Never pre-fill the Notion database link** from memory or earlier runs. The form starts empty; the browser remembers it after the user saves it once.
 - If the script can't run (no python3, or no browser), ask for the four links in text instead.
 
