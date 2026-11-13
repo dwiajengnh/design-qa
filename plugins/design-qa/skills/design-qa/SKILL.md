@@ -111,7 +111,7 @@ Put the measured numbers in the label, e.g. `'Card height 520px – Figma 580px'
 
 Interaction issues (step 2b): `capture.mjs` only runs JS, so set the state up inside the shot's `script`:
 - **Open menu:** click the toggle and wait before marking. The script may be async, e.g. `(async()=>{document.querySelector('.menu-toggle').click(); await new Promise(r=>setTimeout(r,600)); const m=document.querySelector('.mobile-menu'); __mark(m,'Menu cut off at the bottom'); return __abs(m,0)})()`. Don't call `__hideHeader()` when the menu lives inside the header.
-- **Focus:** call `el.focus()` before `__mark(el, ...)`. If the focus ring doesn't show in the PNG, say so in the label instead.
+- **Focus:** a keyboard focus ring can't be shown in headless Chrome (`el.focus()` from a script doesn't trigger `:focus-visible`). Like hover, mark the element in its normal state and put the finding in the label, e.g. `'No visible focus style'`, `'Tab moves focus into this closed panel'`. Use `__box` with some padding rather than `__mark` when the label is about an outline, so the red line doesn't sit on top of it.
 - **Hover:** it can't be shown in headless Chrome. Mark the element in its normal state and put both states in the label, e.g. `'No change on hover'`.
 - These entries have no Figma image. Upload only the staging shot.
 
