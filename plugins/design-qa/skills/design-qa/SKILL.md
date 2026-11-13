@@ -42,7 +42,7 @@ If the skill is invoked without links (for example a bare `/design-qa`, or "open
 3. Notion target: a link to an existing database, or a page to create one in.
 
 ## Rules (from user feedback, keep them)
-- **Ignore content/copy differences.** Figma uses dummy content. Don't report different text, images, translations, placeholder copy, or video footage. Report only: layout/size/position, spacing, typography (size, weight, line-height), colour vs design tokens, radius/shadow, wrong or broken assets (e.g. wrong logo file), missing or extra UI elements, and broken responsive behaviour or horizontal scroll.
+- **Ignore content/copy differences.** Figma uses dummy content. Don't report different text, images, translations, placeholder copy, or video footage. Report only: layout/size/position, spacing, typography (size, weight, line-height), colour vs design tokens, radius/shadow, wrong or broken assets (e.g. wrong logo file), missing or extra UI elements, broken responsive behaviour or horizontal scroll, and wrong hover / focus / open-menu states (see step 2b).
 - Skip differences of 5px or less, and differences caused only by longer real text wrapping.
 - Ignore staging-only artefacts such as dev banners (e.g. WPML) and cookie bars.
 - **Verify before you report.** If something looks broken in the built-in browser, such as a video not playing, a grey background, or animations, re-check it in headless Chrome (`capture.mjs`) first. The built-in pane often doesn't render video.
@@ -73,8 +73,20 @@ If the skill is invoked without links (for example a bare `/design-qa`, or "open
 - Check for elements present in Figma but missing on staging, e.g. floating buttons, icons and badges.
 - If `scrollTo` doesn't repaint in the built-in browser, do one real `computer` scroll and then take the screenshot.
 
+### 2b. Interactive states: hover, focus, open menu
+Do this after the static pass, per viewport. Hover is desktop only; skip it on mobile.
+
+- **What to test:** one of each kind, not every repeated item: a main nav link, each button style (primary, secondary, text link), a linked card, a form field, the menu toggle (hamburger), and a dropdown or submenu if there is one.
+- **Find the Figma reference first.** Look for component variants named like `State=Hover`, `Hover`, `Focus`, `Active`, `Open`, and for a separate frame such as "Menu open" or "Nav expanded". If the open-menu frame isn't inside the frames you were given, ask the user once for its link.
+  - If Figma shows the state: compare staging against it, with the same rules as everywhere else (skip 5px or less, ignore menu labels and other content).
+  - If Figma doesn't show the state: don't report a visual mismatch. Only report it when the state is plainly broken (see the last bullet), as Type `Improvement` with "verify with designer".
+- **Hover:** JS can't trigger `:hover`. Move the real pointer onto the element with `computer` hover, wait about 400ms for the transition, then read `getComputedStyle` in the next JS call while the pointer is still there: `color`, `backgroundColor`, `borderColor`, `boxShadow`, `textDecorationLine`, `opacity`, `transform`. Compare with the normal-state values from step 2 and with the Figma hover variant. Move the pointer away afterwards.
+- **Focus:** press `Tab` with `computer` until the element is focused (keyboard focus is what makes `:focus-visible` apply; for a form field, also click into it). Then read `outlineStyle`, `outlineWidth`, `outlineColor`, `outlineOffset`, `boxShadow` and `borderColor` from `document.activeElement`.
+- **Open menu:** open it the way a user would (click the hamburger on mobile; hover or click the nav item on desktop). Wait for the animation, then measure the panel like a section: rect, background, padding, item font size / weight / line-height, gap between items, and the close icon. Also check that it covers the screen as in Figma, that `scrollWidth === innerWidth` still holds, and that it closes again. Close it before you carry on.
+- **Plainly broken (report even without a Figma reference):** the menu doesn't open or can't be closed; the open menu is cut off or causes horizontal scroll; a hover makes text unreadable; a focused control shows no visible change at all (no outline, shadow, border or background change).
+
 ### 3. Bug list
-For each bug, decide: Name, Page/section, Device (Desktop / Mobile / Both), Type (Bug / Improvement), actual on staging, and expected from Figma. Don't show it for approval; go straight on to screenshots and Notion. For size, spacing and font-size bugs, note the staging value and the Figma value; they go in the Notion body (see the writing rules).
+For each bug, decide: Name, Page/section, Device (Desktop / Mobile / Both), Type (Bug / Improvement), actual on staging, and expected from Figma. Don't show it for approval; go straight on to screenshots and Notion. For size, spacing and font-size bugs, note the staging value and the Figma value; they go in the Notion body (see the writing rules). For a state bug from step 2b, end the Name with the state, e.g. "Primary button: hover state", "Mobile menu: open state"; hover bugs are Device `Desktop`.
 
 ### 4. Annotated staging screenshots
 Write a spec JSON with one shot per bug and run:
@@ -89,6 +101,12 @@ The helpers available in each shot's `script` are documented at the top of `capt
 - `__hideHeader()` hides a sticky header.
 
 Put the measured numbers in the label, e.g. `'Card height 520px – Figma 580px'`. Open each output PNG and check it before uploading. Pair each staging shot with the matching Figma section image; crop that with `png_tools.py crop` if the section image covers more than one area.
+
+State bugs (step 2b): `capture.mjs` only runs JS, so set the state up inside the shot's `script`:
+- **Open menu:** click the toggle and wait before marking. The script may be async, e.g. `(async()=>{document.querySelector('.menu-toggle').click(); await new Promise(r=>setTimeout(r,600)); const m=document.querySelector('.mobile-menu'); __mark(m,'Menu padding 16px – Figma 24px'); return __abs(m,0)})()`. Don't call `__hideHeader()` when the menu lives inside the header.
+- **Focus:** call `el.focus()` before `__mark(el, ...)`. If the focus ring doesn't show in the PNG, say so in the label instead.
+- **Hover:** it can't be shown in headless Chrome. Mark the element in its normal state and put both states in the label, e.g. `'Hover: no change – Figma: darker fill'`.
+- Pair the shot with the Figma variant or menu frame for that state, not the normal-state section image.
 
 ### 5. Notion
 1. `notion-fetch` the database. Use its `collection://` id as `data_source_id` and its **exact** property names and options. Don't add columns without asking. If there's no Severity column, leave severity out.
@@ -112,6 +130,7 @@ Put the measured numbers in the label, e.g. `'Card height 520px – Figma 580px'
    - Short bullet points, not sentences. Use 1–3 bullets per section.
    - Plain words first, e.g. "Title too small", "Text not aligned with the image", "Wrong font", "WhatsApp button missing".
    - **Size bugs must give the size.** When the bug is about a size, spacing/gap, padding or font size, put the staging value in Actual and the **Figma value in Expected**, in px, e.g. "Card 320×520px" / "Card 320×580px", "Gap between cards 16px" / "Gap between cards 24px", "Title 28px" / "Title 36px". Use the Figma value from `get_metadata` or `get_variable_defs`, not a guess.
+   - **State bugs must name the state**, e.g. "Button doesn't change on hover" / "Button gets a darker fill on hover", "No focus outline on the email field" / "Blue outline when focused".
    - Still no hex codes or token names. For colour bugs, use plain words ("Text too light", "Wrong button colour").
    - Example:
      ```
