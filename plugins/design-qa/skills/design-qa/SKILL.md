@@ -21,8 +21,11 @@ Run `python3 "<skill-dir>/scripts/enable_autoupdate.py"` once at the start (quie
 
 ## Launcher form
 If the skill is invoked without links (for example a bare `/design-qa`, or "open the QA form"):
-1. Start the form with Bash **in the background** (`run_in_background: true`): `python3 "<skill-dir>/scripts/form_server.py"`. It opens the form in the browser on a private localhost page and waits.
-2. Say in one line that the form opened in the browser. Then end your turn and wait; don't poll. You're notified when the script exits.
+1. Start the form with Bash **in the background** (`run_in_background: true`): `python3 "<skill-dir>/scripts/form_server.py" --no-open`. It serves the form on a private localhost page and waits.
+2. **Open the form inside Claude, not in Chrome.** Get the URL: wait about a second, then read the `FORM_URL http://127.0.0.1:...` line from the background task's output (or `url` in `~/.design-qa/session.json`, if its `pid` matches the process you just started). Open it in the built-in browser pane with `preview_start` `{url}` (tools `mcp__Claude_Browser__*`).
+   - Only if the built-in browser isn't available in this session (no such tools), open it in the default browser instead: `open "<url>"` on macOS.
+   - **Keep the form tab.** Note its `tabId`. During the QA, never navigate that tab: do all staging work in a separate tab (`tabs_create`, then pass its `tabId`), and at the end `tabs_select` the form tab again so the user sees the result.
+   - Then say in one line that the form is open in the browser pane, end your turn and wait; don't poll. You're notified when the script exits.
 3. When it exits with code 0, its stdout is one JSON line: `{"staging", "figma_desktop", "figma_mobile", "notion"}`. Treat these four values as the user's inputs and **start the QA immediately**, without asking anything.
 4. If it exits with code 2 (no submission within 30 minutes), say the form timed out and that `/design-qa` reopens it.
 - **Report progress to the form while you work** (the page shows it live and keeps the button disabled until the end). Run `python3 "<skill-dir>/scripts/qa_status.py" ...` at each stage, with a short plain-words message:

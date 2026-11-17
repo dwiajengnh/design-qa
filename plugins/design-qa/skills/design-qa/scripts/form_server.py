@@ -174,7 +174,7 @@ def main():
     url = f'http://127.0.0.1:{port}/{TOKEN}/'
     os.makedirs(os.path.dirname(SESSION), exist_ok=True)
     with open(SESSION, 'w') as f:
-        json.dump({'port': port, 'token': TOKEN}, f)
+        json.dump({'port': port, 'token': TOKEN, 'url': url, 'pid': os.getpid()}, f)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     print(f'FORM_URL {url}', file=sys.stderr, flush=True)
     if '--no-open' not in args and not AGAIN:
