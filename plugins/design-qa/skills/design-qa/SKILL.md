@@ -93,7 +93,9 @@ Do this after the static pass, per viewport. Hover is desktop only.
 Type is `Improvement`, or `Bug` when something doesn't work at all (menu won't open or close, page stays locked). These entries have no Figma reference; see steps 4 and 5 for how to log them.
 
 ### 3. Bug list
-For each bug, decide: Name, Page/section, Device (Desktop / Mobile / Both), Type (Bug / Improvement), actual on staging, and expected from Figma. Don't show it for approval; go straight on to screenshots and Notion. For size, spacing and font-size bugs, note the staging value and the Figma value; they go in the Notion body (see the writing rules). For an interaction issue from step 2b, end the Name with the state, e.g. "Nav links: hover state", "Search overlay: keyboard focus"; hover issues are Device `Desktop`, and "expected" is the behaviour a user would expect, not a Figma value.
+**Name** = one short plain phrase that says what's wrong and where, like a sentence without a full stop, e.g. "Offer card too short", "Title too small in hero", "WhatsApp button missing on mobile". **Never use a colon (:)** or "Section – issue" style in the Name.
+
+For each bug, decide: Name, Page/section, Device (Desktop / Mobile / Both), Type (Bug / Improvement), actual on staging, and expected from Figma. Don't show it for approval; go straight on to screenshots and Notion. For size, spacing and font-size bugs, note the staging value and the Figma value; they go in the Notion body (see the writing rules). For an interaction issue from step 2b, mention the state in the Name, e.g. "Nav links have no hover state", "Search overlay takes keyboard focus when closed"; hover issues are Device `Desktop`, and "expected" is the behaviour a user would expect, not a Figma value.
 
 ### 4. Annotated staging screenshots
 Write a spec JSON with one shot per bug and run:
