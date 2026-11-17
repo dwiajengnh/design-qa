@@ -98,7 +98,7 @@ Type is `Improvement`, or `Bug` when something doesn't work at all (menu won't o
 For each bug, decide: Name, Page/section, Device (Desktop / Mobile / Both), Type (Bug / Improvement), actual on staging, and expected from Figma. Don't show it for approval; go straight on to screenshots and Notion. For size, spacing and font-size bugs, note the staging value and the Figma value; they go in the Notion body (see the writing rules). For an interaction issue from step 2b, mention the state in the Name, e.g. "Nav links have no hover state", "Search overlay takes keyboard focus when closed"; hover issues are Device `Desktop`, and "expected" is the behaviour a user would expect, not a Figma value.
 
 ### 4. Annotated staging screenshots
-Write a spec JSON with one shot per bug and run:
+Write a spec JSON with one shot per bug and viewport, and run:
 ```bash
 node <skill-dir>/scripts/capture.mjs <scratch>/spec.json
 ```
@@ -108,6 +108,8 @@ The helpers available in each shot's `script` are documented at the top of `capt
 - `__guide(x)` draws a cyan line marking the expected edge.
 - `__abs(section,0)` sets the clip to the whole section.
 - `__hideHeader()` hides a sticky header.
+
+**Device = Both needs two of everything.** For every bug or improvement marked `Both`, capture TWO staging shots (one with `"viewport": "desktop"`, one with `"viewport": "mobile"`, each with its own label and measurements) and prepare TWO Figma images (the matching section from the desktop frame AND from the mobile frame). Never log a `Both` entry with only desktop images. `Desktop` bugs get desktop images only; `Mobile` bugs get mobile images only.
 
 Put the measured numbers in the label, e.g. `'Card height 520px – Figma 580px'`. Open each output PNG and check it before uploading. Pair each staging shot with the matching Figma section image; crop that with `png_tools.py crop` if the section image covers more than one area.
 
@@ -125,7 +127,7 @@ Interaction issues (step 2b): `capture.mjs` only runs JS, so set the state up in
    - Create the pages in the order of the bug list, so they read top to bottom the same way.
 2. Create **all** bug pages in ONE `notion-create-pages` call (pages array in bug-list order; properties only).
    - **`Page` property = the staging URL**, exactly as the user gave it (the same URL for Desktop, Mobile and Both bugs). Don't use the Figma frame name, and don't add the section.
-3. Upload the images. Make all `notion-create-file-upload` calls in parallel in one message, one per image (each upload attaches only once, so reused Figma images need their own upload). Write a manifest with lines `upload_url token file`, then run `bash scripts/notion_upload.sh manifest.txt`. Each upload URL works once; re-running gives 401, so check the first run's output.
+3. Upload the images (a `Both` entry has 4: staging desktop, staging mobile, Figma desktop, Figma mobile). Make all `notion-create-file-upload` calls in parallel in one message, one per image (each upload attaches only once, so reused Figma images need their own upload). Write a manifest with lines `upload_url token file`, then run `bash scripts/notion_upload.sh manifest.txt`. Each upload URL works once; re-running gives 401, so check the first run's output.
 4. Set every page body with `notion-update-page` → `replace_content` (all calls in parallel in one message), using **exactly this format**: Actual first, then Expected. No Severity line, no Links section.
    ```
    ### Actual (Staging)
@@ -135,6 +137,22 @@ Interaction issues (step 2b): `capture.mjs` only runs JS, so set the state up in
    - <how it should look, short>
    <image src="file-upload://FIGMA_UPLOAD_ID"></image>
    ```
+   For a **`Both`** entry, show each viewport under a small label, desktop first:
+   ```
+   ### Actual (Staging)
+   - <what is wrong, short>
+   **Desktop**
+   <image src="file-upload://STAGING_DESKTOP_ID"></image>
+   **Mobile**
+   <image src="file-upload://STAGING_MOBILE_ID"></image>
+   ### Expected (Figma)
+   - <how it should look, short>
+   **Desktop**
+   <image src="file-upload://FIGMA_DESKTOP_ID"></image>
+   **Mobile**
+   <image src="file-upload://FIGMA_MOBILE_ID"></image>
+   ```
+   If the size differs per viewport, put both in the bullets, e.g. "Title 28px desktop, 20px mobile".
    Writing rules for the body:
    - Short bullet points, not sentences. Use 1–3 bullets per section.
    - Plain words first, e.g. "Title too small", "Text not aligned with the image", "Wrong font", "WhatsApp button missing".
@@ -152,7 +170,7 @@ Interaction issues (step 2b): `capture.mjs` only runs JS, so set the state up in
      - Card height 580px
      - Text aligned with the image above
      ```
-5. Re-fetch one page to confirm the images rendered (they show as `notion-file-block://...`).
+5. Re-fetch one page to confirm the images rendered (they show as `notion-file-block://...`). If there's a `Both` entry, re-fetch that one and check it has 4 images.
 
 ### 6. Report back
 Give a short summary: how many entries were created, grouped by Type/Device; anything that couldn't be verified; and the database link.
