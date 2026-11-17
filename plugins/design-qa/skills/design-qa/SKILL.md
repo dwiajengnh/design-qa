@@ -47,6 +47,8 @@ If the skill is invoked without links (for example a bare `/design-qa`, or "open
 - Ignore staging-only artefacts such as dev banners (e.g. WPML) and cookie bars.
 - **Verify before you report.** If something looks broken in the built-in browser, such as a video not playing, a grey background, or animations, re-check it in headless Chrome (`capture.mjs`) first. The built-in pane often doesn't render video.
 - Flag uncertain items, e.g. a font weight judged by eye, as "verify with designer".
+- **Every Start QA is a full, fresh QA.** Never skip checking or logging because of an earlier run: not because of earlier results in this conversation, not because of memory, and not because "nothing changed on staging". Always re-check Figma and staging.
+- **Duplicates are decided by Notion as it is now, nothing else.** Right before writing, query the database (`notion-query-data-sources`, or `notion-fetch`) for live entries whose `Page` is this staging URL. Skip a bug only if a live entry with the same problem is in that result. Bugs whose entries were deleted or moved to trash are NOT in Notion anymore, so log them again. Never say "the bugs already in Notion still apply" without having just queried Notion.
 - **Don't ask for approval.** Write every bug straight to Notion; don't show the bug list first and don't wait for an OK.
 - Never delete Notion pages or databases unless the user asks. Auto mode may block deletes; if so, tell the user.
 
@@ -173,6 +175,7 @@ Interaction issues (step 2b): `capture.mjs` only runs JS, so set the state up in
 5. Re-fetch one page to confirm the images rendered (they show as `notion-file-block://...`). If there's a `Both` entry, re-fetch that one and check it has 4 images.
 
 ### 6. Report back
+If some bugs were skipped as duplicates, say how many and that they're still live in Notion; the rest were newly logged.
 Give a short summary: how many entries were created, grouped by Type/Device; anything that couldn't be verified; and the database link.
 
 ## Default Notion schema (only when creating a new database and the user has none)
