@@ -140,16 +140,18 @@ Interaction issues (step 2b): `capture.mjs` only runs JS, so set the state up in
    - <how it should look, short>
    <image src="file-upload://FIGMA_UPLOAD_ID"></image>
    ```
-   For a **`Both`** entry, show each viewport under a small label, desktop first:
+   For a **`Both`** entry, show each viewport under a small label, desktop first. Leave an **empty line after the last bullet**, otherwise Notion glues the **Desktop** label onto that bullet:
    ```
    ### Actual (Staging)
    - <what is wrong, short>
+
    **Desktop**
    <image src="file-upload://STAGING_DESKTOP_ID"></image>
    **Mobile**
    <image src="file-upload://STAGING_MOBILE_ID"></image>
    ### Expected (Figma)
    - <how it should look, short>
+
    **Desktop**
    <image src="file-upload://FIGMA_DESKTOP_ID"></image>
    **Mobile**
