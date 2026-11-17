@@ -55,7 +55,7 @@ If the skill is invoked without links (for example a bare `/design-qa`, or "open
 ## Workflow
 
 ### 1. Figma: structure, tokens, section screenshots
-- `get_metadata(fileKey, nodeId)` on each frame. Note the top-level section node IDs, and their x/y/width/height; these are the expected sizes.
+- `get_metadata(fileKey, nodeId)` on each frame. Note the **frame name** (the root node's `name`, for the Notion `Figma` column), the top-level section node IDs, and their x/y/width/height; these are the expected sizes.
   - If `get_metadata` fails because the response is too large (long pages), skip it: take one full-frame `get_screenshot` at native size (`maxDimension` = frame height), then `png_tools.py slice` it and `png_tools.py crop` each section by y range.
 - `get_variable_defs` on the frame gives the type scale, colour tokens and shadows (e.g. `Paragraph/16 = Lato 16/26`, `Neutral/600 = #575757`). Compare staging against these.
 - **Fast path (same images):** take ONE `get_screenshot` of the whole frame with `maxDimension` = the frame height, download it, and check its pixel size with `png_tools.py`. If it came back at full size (width = frame width), crop each section from it with `png_tools.py crop` using the section y/height from `get_metadata`. If it came back smaller (downscaled), don't use it; fall back to the per-section call below, so images stay sharp.
@@ -128,7 +128,8 @@ Interaction issues (step 2b): `capture.mjs` only runs JS, so set the state up in
      - `SHOW` in `notion-update-view` replaces the whole list of visible columns. List every existing column, plus the new one.
    - Create the pages in the order of the bug list, so they read top to bottom the same way.
 2. Create **all** bug pages in ONE `notion-create-pages` call (pages array in bug-list order; properties only).
-   - **`Page` property = the staging URL**, exactly as the user gave it (the same URL for Desktop, Mobile and Both bugs). Don't use the Figma frame name, and don't add the section.
+   - **Staging URL column** (`Page URL`, or `Page` in older databases) = the staging URL, exactly as the user gave it (the same URL for Desktop, Mobile and Both bugs). Don't add the section.
+   - **`Figma` column = the exact Figma frame name** (the root node's `name` from `get_metadata`, copied character for character). Use the desktop frame's name for Desktop and Both bugs, and the mobile frame's name for Mobile bugs. If `get_metadata` is too large to read, take the name from the frame link's file/page instead only if it's clearly the frame name; otherwise ask the user. Skip this if the database has no `Figma` column.
 3. Upload the images (a `Both` entry has 4: staging desktop, staging mobile, Figma desktop, Figma mobile). Make all `notion-create-file-upload` calls in parallel in one message, one per image (each upload attaches only once, so reused Figma images need their own upload). Write a manifest with lines `upload_url token file`, then run `bash scripts/notion_upload.sh manifest.txt`. Each upload URL works once; re-running gives 401, so check the first run's output.
 4. Set every page body with `notion-update-page` → `replace_content` (all calls in parallel in one message), using **exactly this format**: Actual first, then Expected. No Severity line, no Links section.
    ```
